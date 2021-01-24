@@ -1,53 +1,76 @@
-package com.example;
+package net.runelite.client.plugins.hydra;
 
-import com.google.inject.Provides;
+import java.awt.*;
 import javax.inject.Inject;
-import lombok.extern.slf4j.Slf4j;
-import net.runelite.api.ChatMessageType;
-import net.runelite.api.Client;
-import net.runelite.api.GameState;
-import net.runelite.api.events.GameStateChanged;
-import net.runelite.client.config.ConfigManager;
-import net.runelite.client.eventbus.Subscribe;
-import net.runelite.client.plugins.Plugin;
-import net.runelite.client.plugins.PluginDescriptor;
 
-@Slf4j
-@PluginDescriptor(
-	name = "Example"
-)
-public class ExamplePlugin extends Plugin
-{
+import net.runelite.api.*;
+import net.runelite.api.Point;
+import net.runelite.client.ui.FontManager;
+import net.runelite.client.ui.overlay.*;
+import net.runelite.client.ui.overlay.components.PanelComponent;
+
+public class HydraOverlay extends Overlay {
+	private final HydraConfig config;
+	private final HydraPlugin plugin;
+	private final PanelComponent panelComponent = new PanelComponent();
+
+
 	@Inject
 	private Client client;
 
 	@Inject
-	private ExampleConfig config;
-
-	@Override
-	protected void startUp() throws Exception
-	{
-		log.info("Example started!");
+	private HydraOverlay(HydraConfig config, HydraPlugin plugin) {
+		this.config = config;
+		this.plugin = plugin;
+		setLayer(OverlayLayer.ABOVE_SCENE);
+		setPosition(OverlayPosition.DYNAMIC);
+		setPriority(OverlayPriority.MED);
+		panelComponent.setPreferredSize(new Dimension(150, 0));
 	}
 
 	@Override
-	protected void shutDown() throws Exception
-	{
-		log.info("Example stopped!");
-	}
-
-	@Subscribe
-	public void onGameStateChanged(GameStateChanged gameStateChanged)
-	{
-		if (gameStateChanged.getGameState() == GameState.LOGGED_IN)
-		{
-			client.addChatMessage(ChatMessageType.GAMEMESSAGE, "", "Example says " + config.greeting(), null);
+	public Dimension render(Graphics2D graphics) {
+		if (!config.TextIndicator()) {
+			return null;
 		}
-	}
 
-	@Provides
-	ExampleConfig provideConfig(ConfigManager configManager)
-	{
-		return configManager.getConfig(ExampleConfig.class);
+		for (NPC hydra : client.getNpcs()) {
+			if (hydra == null || hydra.getName() == null) {
+				continue;
+			}
+			if (hydra.getName().equalsIgnoreCase("Hydra")) {
+				if (plugin.hydras.containsKey(hydra.getIndex())) {
+					int val = plugin.hydras.get(hydra.getIndex());
+					if (val != 0) {
+						if (config.BoldText()) {
+							graphics.setFont(FontManager.getRunescapeBoldFont());
+						}
+						if (plugin.hydraattacks.containsKey(hydra.getIndex())) {
+							int attack = plugin.hydraattacks.get(hydra.getIndex());
+							if (attack == 8261) {
+								if (val == 3) {
+									OverlayUtil.renderTextLocation(graphics, hydra.getCanvasTextLocation(graphics, "MAGE", hydra.getLogicalHeight() + 100), "MAGE", Color.BLUE);
+								} else {
+									OverlayUtil.renderTextLocation(graphics, hydra.getCanvasTextLocation(graphics, "RANGE", hydra.getLogicalHeight() + 100), "RANGE", Color.GREEN);
+								}
+							} else if (attack == 8262) {
+								if (val == 3) {
+									OverlayUtil.renderTextLocation(graphics, hydra.getCanvasTextLocation(graphics, "RANGE", hydra.getLogicalHeight() + 100), "RANGE", Color.GREEN);
+								} else {
+									OverlayUtil.renderTextLocation(graphics, hydra.getCanvasTextLocation(graphics, "MAGE", hydra.getLogicalHeight() + 100), "MAGE", Color.BLUE);
+								}
+							}
+						}
+						Point runelitepleaseexplainwhyineedtocheckthisfornullinsteadoftheentirehydravariablethisshitcostmelikeanhourofmylifeandiblameyouadam = hydra.getCanvasTextLocation(graphics, Integer.toString(val), hydra.getLogicalHeight() + 40);
+						if (runelitepleaseexplainwhyineedtocheckthisfornullinsteadoftheentirehydravariablethisshitcostmelikeanhourofmylifeandiblameyouadam != null) {
+							OverlayUtil.renderTextLocation(graphics, runelitepleaseexplainwhyineedtocheckthisfornullinsteadoftheentirehydravariablethisshitcostmelikeanhourofmylifeandiblameyouadam, Integer.toString(val), Color.WHITE);
+						}
+					}
+				}
+			}
+
+		}
+		graphics.setFont(FontManager.getRunescapeFont());
+		return null;
 	}
 }
